@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { client } from '@/backend/client'
 import type { User } from '@/backend/AttendMeBackendClientBase'
 
 export const useAuthStore = defineStore('auth', {

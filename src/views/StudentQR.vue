@@ -18,7 +18,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import QrcodeVue from 'qrcode.vue'
-import { client } from '@/backend/client'
 
 const token = ref<string | null>(null)
 const loading = ref(true)
@@ -31,7 +30,7 @@ async function fetchTicket() {
     const res = await client.userAttendanceTicketGet()
     token.value = res.token ?? null
     error.value = null
-  } catch (e) {
+  } catch {
     token.value = null
     error.value = 'Brak aktywnych zajęć LUB urządzenie nie jest zarejestrowane.'
   } finally {
