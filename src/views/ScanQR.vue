@@ -20,7 +20,9 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { QrcodeStream, QrcodeDropZone } from 'vue-qrcode-reader'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 /* ---------- ROUTE ---------- */
 const route = useRoute()

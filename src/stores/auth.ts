@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import type { User } from '@/backend/AttendMeBackendClientBase'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
