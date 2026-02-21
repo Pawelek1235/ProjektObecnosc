@@ -153,59 +153,114 @@ function formatTime(date?: string | Date) {
 </script>
 
 <style scoped>
+/* ===== LAYOUT ===== */
+
 .dashboard {
-  max-width: 1000px;
-  margin: auto;
-  padding: 1.5rem;
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  min-height: 100vh;
+  background: #f5f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
+/* ===== HEADER ===== */
 
 .header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
 }
+
+.header h1 {
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ===== FILTERS ===== */
 
 .filters {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
-.search {
-  padding: 0.4rem;
+.search,
+select {
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  background: white;
+  transition: 0.15s ease;
 }
+
+.search:focus,
+select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ===== SESSION CARD ===== */
 
 .session-row {
   background: white;
-  padding: 1rem;
-  border-radius: 10px;
-  margin-bottom: 0.8rem;
+  padding: 1.2rem;
+  border-radius: 14px;
+  margin-bottom: 1rem;
   cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 }
 
 .session-row:hover {
-  background: #f1f5f9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
+
+.session-row h3 {
+  margin: 0.5rem 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ===== DATE BADGE ===== */
 
 .badge {
-  background: #e0f2fe;
+  display: inline-block;
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+  color: #0369a1;
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
+
+/* ===== META INFO ===== */
 
 .meta {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #64748b;
   display: flex;
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
+/* ===== STATES ===== */
+
 .error {
-  color: red;
+  margin-top: 1rem;
+  color: #dc2626;
+  font-size: 0.9rem;
 }
 
 .empty {
-  margin-top: 2rem;
+  margin-top: 3rem;
   text-align: center;
+  font-size: 0.95rem;
+  color: #64748b;
 }
 </style>

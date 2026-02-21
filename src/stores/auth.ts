@@ -9,10 +9,10 @@ export const useAuthStore = defineStore('auth', {
     user: null as User | null,
     loading: false,
     error: null as string | null,
+    initialized: false,
   }),
 
   actions: {
-    // 🔐 LOGIN
     async login(login: string, password: string) {
       this.loading = true
       this.error = null
@@ -20,10 +20,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const tokenResult: TokenResult = await client.userLogin(login, password)
 
-        // zapis tokena
         sessionStorage.setItem('attend-me:userAuthData', JSON.stringify(tokenResult))
 
-        // pobranie danych użytkownika
         this.user = await client.userGet(undefined)
       } catch {
         this.user = null
@@ -31,15 +29,16 @@ export const useAuthStore = defineStore('auth', {
         throw new Error('login failed')
       } finally {
         this.loading = false
+        this.initialized = true
       }
     },
 
-    // 🔁 Przywracanie sesji po refreshu
     async loginFromStorage() {
       const raw = sessionStorage.getItem('attend-me:userAuthData')
 
       if (!raw) {
         this.user = null
+        this.initialized = true
         return
       }
 
@@ -48,13 +47,14 @@ export const useAuthStore = defineStore('auth', {
       } catch {
         this.user = null
         sessionStorage.removeItem('attend-me:userAuthData')
-        throw new Error('invalid token')
+      } finally {
+        this.initialized = true
       }
     },
 
-    // 🚪 Logout
     logout() {
       this.user = null
+      this.initialized = true
       sessionStorage.removeItem('attend-me:userAuthData')
     },
   },

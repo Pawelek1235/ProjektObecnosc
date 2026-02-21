@@ -1581,6 +1581,23 @@ export class AttendMeBackendClientBase {
     }
     return Promise.resolve<number>(null as any)
   }
+  protected async transformOptions(options: RequestInit): Promise<RequestInit> {
+    const raw = sessionStorage.getItem('attend-me:userAuthData')
+
+    if (raw) {
+      try {
+        const tokenResult = JSON.parse(raw)
+        if (tokenResult?.token) {
+          options.headers = {
+            ...options.headers,
+            Authorization: `Bearer ${tokenResult.token}`,
+          }
+        }
+      } catch {}
+    }
+
+    return options
+  }
 }
 
 export interface AttendanceLog {

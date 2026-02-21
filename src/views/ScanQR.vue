@@ -18,14 +18,30 @@
 import { ref } from 'vue'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
+const token = route.params.token as string
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 const message = ref<string | null>(null)
 const error = ref<string | null>(null)
 
 let scanningLocked = false
+import { onMounted } from 'vue'
 
+onMounted(async () => {
+  if (!token) return
+
+  try {
+    await client.courseSessionAttendanceRegister(token)
+    message.value = 'Obecność zarejestrowana'
+    error.value = null
+  } catch {
+    message.value = null
+    error.value = 'Nie udało się zarejestrować obecności'
+  }
+})
 async function onDecode(result: string) {
   if (scanningLocked) return
 

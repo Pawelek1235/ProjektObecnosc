@@ -33,14 +33,19 @@ async function submit() {
   try {
     await auth.login(login.value, password.value)
 
+    const redirect = router.currentRoute.value.query.redirect as string | undefined
+
+    if (redirect) {
+      router.push(redirect)
+      return
+    }
+
     if (auth.user?.teacherId) {
       router.push('/teacher')
     } else if (auth.user?.studentId) {
       router.push('/student')
     }
-  } catch {
-    // błąd obsługiwany w store
-  }
+  } catch {}
 }
 </script>
 

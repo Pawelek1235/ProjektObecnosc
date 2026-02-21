@@ -22,20 +22,47 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+import { useAuthStore } from '@/stores/auth'
 
-const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
+const auth = useAuthStore()
+
+const client = new AttendMeBackendClient(
+  'https://attendme-backend.runasp.net',
+  (url: RequestInfo, options: RequestInit) => {
+    options = options || {}
+    options.headers = {
+      ...options.headers,
+      Authorization: `Bearer ${auth.token}`,
+    }
+    return fetch(url, options)
+  },
+)
 
 const qrValue = ref<string | null>(null)
 const error = ref<string | null>(null)
 const message = ref<string | null>(null)
+const attendanceConfirmed = ref(false)
 
 let interval: number | undefined
 
 async function fetchTicket() {
   try {
-    const res = await client.userAttendanceTicketGet()
+    const res: any = await client.userAttendanceTicketGet()
+
     qrValue.value = res.token ?? null
     error.value = null
+
+    // ⬇️ obsługa informacji o obecności
+    if (
+      (res.attendanceRegistered || res.attendanceLog || res.lastAttendance) &&
+      !attendanceConfirmed.value
+    ) {
+      attendanceConfirmed.value = true
+      message.value = 'Obecność została zarejestrowana'
+
+      // zatrzymujemy dalsze odświeżanie
+      if (interval) clearInterval(interval)
+    }
   } catch {
     error.value = 'Brak aktywnych zajęć lub urządzenie nie jest zarejestrowane.'
   }
@@ -50,6 +77,31 @@ onUnmounted(() => {
   if (interval) clearInterval(interval)
 })
 </script>
+
+<style scoped>
+.qr-page {
+  padding: 2rem;
+  text-align: center;
+}
+
+.qr-container {
+  margin: 2rem 0;
+}
+
+.loading {
+  margin: 2rem;
+  font-size: 1.1rem;
+}
+
+.message {
+  color: green;
+  font-weight: bold;
+}
+
+.error {
+  color: red;
+}
+</style>
 
 <style scoped>
 .qr-page {

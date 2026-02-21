@@ -48,7 +48,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
+const token = route.params.token as string
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 const deviceName = ref('')
@@ -66,9 +69,19 @@ async function register() {
   success.value = false
 
   try {
-    await client.userDeviceRegister({
+    if (!token) {
+      throw new Error('Brak tokena w URL')
+    }
+
+    const result = await client.userDeviceRegisterWithToken(token, {
       deviceName: deviceName.value,
     })
+
+    if (!result.token) {
+      throw new Error('Backend nie zwrócił tokena')
+    }
+
+    localStorage.setItem('deviceToken', result.token)
 
     success.value = true
   } catch {
@@ -82,74 +95,84 @@ async function register() {
 <style scoped>
 .register-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
+  background: #f5f7fb;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .register-card {
-  width: 420px;
-  background: rgba(15, 23, 42, 0.85);
-  padding: 2rem;
-  border-radius: 14px;
-  color: white;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-.logo {
-  width: 80px;
-  display: block;
-  margin: 0 auto 1rem;
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  padding: 2.5rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
 }
 
 h1 {
   text-align: center;
   margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .subtitle {
   text-align: center;
   font-size: 0.9rem;
-  opacity: 0.8;
-  margin-bottom: 1.5rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+  line-height: 1.5;
 }
 
 .field {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   display: flex;
   flex-direction: column;
 }
 
 .field label {
   font-size: 0.8rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.4rem;
+  color: #334155;
+  font-weight: 500;
 }
 
 .field input {
-  padding: 0.6rem;
-  border-radius: 6px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: white;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.9rem;
+  transition: 0.15s ease;
 }
 
 .field input:focus {
   outline: none;
-  border-color: #22c55e;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .submit {
   width: 100%;
-  padding: 0.7rem;
-  border-radius: 8px;
+  padding: 0.75rem;
+  border-radius: 12px;
   border: none;
-  background: #16a34a;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 0.5rem;
+}
+
+.submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
 }
 
 .submit:disabled {
@@ -159,13 +182,15 @@ h1 {
 
 .error {
   margin-top: 1rem;
-  color: #ef4444;
+  color: #dc2626;
   text-align: center;
+  font-size: 0.85rem;
 }
 
 .success {
   margin-top: 1rem;
-  color: #22c55e;
+  color: #16a34a;
   text-align: center;
+  font-size: 0.85rem;
 }
 </style>
