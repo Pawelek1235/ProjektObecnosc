@@ -1,17 +1,20 @@
 <template>
   <div class="qr-page">
-    <h1>Rejestracja obecności</h1>
+    <h2>Rejestracja obecności</h2>
 
-    <p v-if="loading">Pobieranie kodu…</p>
+    <div class="qr-container" v-if="qrValue">
+      <qrcode-vue :value="qrValue" :size="260" />
+    </div>
+
+    <div v-else class="loading">Generowanie kodu...</div>
+
+    <p v-if="message" class="message">
+      {{ message }}
+    </p>
 
     <p v-if="error" class="error">
       {{ error }}
     </p>
-
-    <div v-if="token" class="qr-box">
-      <QrcodeVue :value="token" :size="220" />
-      <p class="hint">Zbliż kod do kamery wykładowcy</p>
-    </div>
   </div>
 </template>
 
@@ -21,22 +24,20 @@ import QrcodeVue from 'qrcode.vue'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
-const token = ref<string | null>(null)
-const loading = ref(true)
+
+const qrValue = ref<string | null>(null)
 const error = ref<string | null>(null)
+const message = ref<string | null>(null)
 
 let interval: number | undefined
 
 async function fetchTicket() {
   try {
     const res = await client.userAttendanceTicketGet()
-    token.value = res.token ?? null
+    qrValue.value = res.token ?? null
     error.value = null
   } catch {
-    token.value = null
-    error.value = 'Brak aktywnych zajęć LUB urządzenie nie jest zarejestrowane.'
-  } finally {
-    loading.value = false
+    error.value = 'Brak aktywnych zajęć lub urządzenie nie jest zarejestrowane.'
   }
 }
 
@@ -52,24 +53,24 @@ onUnmounted(() => {
 
 <style scoped>
 .qr-page {
-  max-width: 400px;
-  margin: auto;
   padding: 2rem;
   text-align: center;
 }
 
-.qr-box {
-  margin-top: 1.5rem;
+.qr-container {
+  margin: 2rem 0;
 }
 
-.hint {
-  margin-top: 1rem;
-  color: #64748b;
+.loading {
+  margin: 2rem;
+  font-size: 1.1rem;
+}
+
+.message {
+  color: green;
 }
 
 .error {
-  margin-top: 1rem;
-  color: #dc2626;
-  font-weight: 500;
+  color: red;
 }
 </style>

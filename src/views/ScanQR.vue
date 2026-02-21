@@ -1,120 +1,72 @@
 <template>
   <div class="scan-page">
-    <h1>Skanowanie obecności</h1>
+    <h2>Skanowanie obecności</h2>
 
-    <p v-if="loading">Inicjalizacja skanera…</p>
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="message" class="success">{{ message }}</p>
+    <qrcode-stream @decode="onDecode" @init="onInit" />
 
-    <!-- Kamera -->
-    <qrcode-stream v-if="!loading && useCamera" @detect="onDetect" @error="onCameraError" />
+    <p v-if="message" class="success">
+      {{ message }}
+    </p>
 
-    <!-- Fallback: upload obrazu -->
-    <qrcode-drop-zone v-else-if="!loading" @decode="onDecode">
-      <div class="drop-zone">Brak dostępu do kamery — kliknij lub upuść obraz z kodem QR</div>
-    </qrcode-drop-zone>
+    <p v-if="error" class="error">
+      {{ error }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { QrcodeStream, QrcodeDropZone } from 'vue-qrcode-reader'
+import { ref } from 'vue'
+import { QrcodeStream } from 'vue-qrcode-reader'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
-/* ---------- ROUTE ---------- */
-const route = useRoute()
-const param = route.params.id
-const sessionId = typeof param === 'string' ? Number(param) : NaN
-
-/* ---------- STATE ---------- */
-const loading = ref(true)
-const error = ref<string | null>(null)
 const message = ref<string | null>(null)
-const useCamera = ref(true)
+const error = ref<string | null>(null)
 
-/* ---------- INIT ---------- */
-onMounted(async () => {
-  if (Number.isNaN(sessionId)) {
-    error.value = 'Nieprawidłowy identyfikator zajęć'
-    loading.value = false
-    return
-  }
+let scanningLocked = false
+
+async function onDecode(result: string) {
+  if (scanningLocked) return
+
+  scanningLocked = true
 
   try {
-    // 🔑 Pobranie tokenu sesji skanera
-    await client.courseSessionAttendanceScannerTokenGet(sessionId)
-  } catch {
-    error.value = 'Nie udało się zainicjalizować skanera'
-  } finally {
-    loading.value = false
-  }
-})
-
-/* ---------- QR DETECT ---------- */
-type DetectedCode = { rawValue: string }
-
-async function onDetect(codes: DetectedCode[]) {
-  const code = codes[0]?.rawValue
-  if (!code) return
-
-  await registerAttendance(code)
-}
-
-async function onDecode(code: string) {
-  if (!code) return
-  await registerAttendance(code)
-}
-
-/* ---------- REGISTER ---------- */
-async function registerAttendance(attenderToken: string) {
-  try {
-    const user = await client.courseSessionAttendanceRegister(attenderToken)
-    message.value = `Zarejestrowano obecność: ${user.name} ${user.surname}`
+    await client.courseSessionAttendanceRegister(result)
+    message.value = 'Obecność zarejestrowana'
     error.value = null
-
-    setTimeout(() => {
-      message.value = null
-    }, 3000)
   } catch {
-    error.value = 'Nie udało się zarejestrować obecności'
+    message.value = null
+    error.value = 'Błąd rejestracji obecności'
   }
+
+  setTimeout(() => {
+    scanningLocked = false
+    message.value = null
+    error.value = null
+  }, 2000)
 }
 
-/* ---------- CAMERA ERROR ---------- */
-function onCameraError(err: unknown) {
-  console.warn('Camera error:', err)
-  useCamera.value = false
+function onInit(promise: Promise<void>) {
+  promise.catch(() => {
+    error.value = 'Brak dostępu do kamery'
+  })
 }
 </script>
 
 <style scoped>
 .scan-page {
-  max-width: 600px;
-  margin: auto;
   padding: 2rem;
   text-align: center;
 }
 
-.error {
-  color: #dc2626;
-  margin-top: 0.5rem;
-}
-
 .success {
-  color: #16a34a;
-  font-weight: bold;
-  margin-top: 0.5rem;
+  color: green;
+  margin-top: 1rem;
 }
 
-.drop-zone {
-  margin-top: 1.5rem;
-  padding: 2rem;
-  border: 2px dashed #94a3b8;
-  border-radius: 10px;
-  color: #475569;
-  cursor: pointer;
+.error {
+  color: red;
+  margin-top: 1rem;
 }
 </style>

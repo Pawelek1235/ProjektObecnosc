@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import type { AttendanceLog, CourseSessionListItem } from '@/backend/AttendMeBackendClientBase'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 interface StudentState {
   sessions: CourseSessionListItem[]

@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 import LoginView from '@/views/LoginView.vue'
-
 import TeacherDashboard from '@/views/TeacherDashboard.vue'
 import TeacherSessionDetails from '@/views/TeacherSessionDetails.vue'
 import ScanQR from '@/views/ScanQR.vue'
@@ -9,8 +9,8 @@ import ScanQR from '@/views/ScanQR.vue'
 import StudentDashboard from '@/views/StudentDashboard.vue'
 import GenerateQR from '@/views/GenerateQR.vue'
 import StudentQR from '@/views/StudentQR.vue'
-
-import { useAuthStore } from '@/stores/auth'
+import StudentDeviceRegister from '@/views/StudentDeviceRegister.vue'
+import StudentSessionDetails from '@/views/StudentSessionDetails.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +18,7 @@ const router = createRouter({
     {
       path: '/login',
       component: LoginView,
+      meta: { public: true },
     },
 
     // ===== TEACHER =====
@@ -53,62 +54,52 @@ const router = createRouter({
       component: StudentQR,
       meta: { role: 'student' },
     },
+    {
+      path: '/student/session/:id',
+      component: StudentSessionDetails,
+      meta: { role: 'student' },
+    },
+    {
+      path: '/student/device/register/:token',
+      component: StudentDeviceRegister,
+      meta: { public: true },
+    },
 
     // ===== FALLBACK =====
     {
       path: '/:pathMatch(.*)*',
       redirect: '/login',
     },
-    {
-      path: '/student/device-register',
-      component: () => import('@/views/StudentDeviceRegister.vue'),
-    },
-    {
-      path: '/student/session/:id',
-      component: () => import('@/views/StudentSessionDetails.vue'),
-      meta: { role: 'student' },
-    },
-    {
-      path: '/student/device/register/:token',
-      component: () => import('@/views/StudentDeviceRegister.vue'),
-    },
-    {
-      path: '/student/device/register/:token',
-      component: () => import('@/views/StudentDeviceRegister.vue'),
-      meta: { public: true },
-    },
   ],
 })
-
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // 🟢 publiczne strony (np. rejestracja urządzenia)
-  if (to.meta.public) {
-    return true
+  const token = sessionStorage.getItem('attend-me:userAuthData')
+
+  // 🔁 jeśli mamy token, ale brak usera → pobierz usera
+  if (token && !auth.user) {
+    try {
+      await auth.loginFromStorage()
+    } catch {
+      sessionStorage.removeItem('attend-me:userAuthData')
+      return '/login'
+    }
   }
 
-  // 🔒 brak zalogowanego użytkownika → login
-  if (!auth.user && to.path !== '/login') {
-    return '/login'
-  }
+  if (to.meta.public) return true
 
-  // 🔁 zalogowany → nie wracaj na login
+  if (!auth.user) return '/login'
+
+  if (to.meta.role === 'teacher' && !auth.user.teacherId) return '/student'
+
+  if (to.meta.role === 'student' && !auth.user.studentId) return '/teacher'
+
   if (auth.user && to.path === '/login') {
     if (auth.user.teacherId) return '/teacher'
     if (auth.user.studentId) return '/student'
   }
 
-  // 👨‍🏫 role
-  if (to.meta.role === 'teacher' && !auth.user?.teacherId) {
-    return '/student'
-  }
-
-  if (to.meta.role === 'student' && !auth.user?.studentId) {
-    return '/teacher'
-  }
-
   return true
 })
-
 export default router

@@ -13,7 +13,7 @@ app.use(pinia)
 
 // 2️⃣ zainicjalizuj auth store (POZA komponentem)
 const auth = useAuthStore(pinia)
-await auth.init()
+await auth.loginFromStorage()
 
 // 3️⃣ router dopiero PO init
 app.use(router)

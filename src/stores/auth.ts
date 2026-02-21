@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import type { User } from '@/backend/AttendMeBackendClientBase'
+import type { User, TokenResult } from '@/backend/AttendMeBackendClientBase'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
@@ -11,12 +12,18 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
+    // 🔐 LOGIN
     async login(login: string, password: string) {
       this.loading = true
       this.error = null
 
       try {
-        await client.userLogin(login, password)
+        const tokenResult: TokenResult = await client.userLogin(login, password)
+
+        // zapis tokena
+        sessionStorage.setItem('attend-me:userAuthData', JSON.stringify(tokenResult))
+
+        // pobranie danych użytkownika
         this.user = await client.userGet(undefined)
       } catch {
         this.user = null
@@ -27,17 +34,27 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async init() {
+    // 🔁 Przywracanie sesji po refreshu
+    async loginFromStorage() {
+      const raw = sessionStorage.getItem('attend-me:userAuthData')
+
+      if (!raw) {
+        this.user = null
+        return
+      }
+
       try {
         this.user = await client.userGet(undefined)
       } catch {
         this.user = null
+        sessionStorage.removeItem('attend-me:userAuthData')
+        throw new Error('invalid token')
       }
     },
 
+    // 🚪 Logout
     logout() {
       this.user = null
-      client.userTokenResult = undefined
       sessionStorage.removeItem('attend-me:userAuthData')
     },
   },

@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 import type {
   CourseSessionListItem,
   CourseSessionAttendanceRecord,

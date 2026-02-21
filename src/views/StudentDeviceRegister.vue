@@ -16,7 +16,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 const route = useRoute()
 const router = useRouter()

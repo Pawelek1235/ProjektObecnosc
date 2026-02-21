@@ -16,7 +16,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import QrcodeVue from 'qrcode.vue'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 const token = ref<string | null>(null)
 const loading = ref(true)

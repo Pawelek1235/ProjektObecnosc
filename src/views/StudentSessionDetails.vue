@@ -60,7 +60,9 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { client } from '@/backend/client'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 import type { CourseSessionListItem, AttendanceLog } from '@/backend/AttendMeBackendClientBase'
 
 /* ---------- ROUTER ---------- */
