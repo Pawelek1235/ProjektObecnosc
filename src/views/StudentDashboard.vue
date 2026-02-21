@@ -67,42 +67,53 @@ onMounted(() => {
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
+/* =======================
+   POPRAWIONE FILTROWANIE
+======================= */
+
 const filteredSessions = computed<CourseSessionListItem[]>(() => {
+  const sessions = [...store.sessions]
+
   const now = new Date()
 
-  const startOfDay = new Date(now)
-  startOfDay.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
-  const endOfDay = new Date(now)
-  endOfDay.setHours(23, 59, 59, 999)
+  const endToday = new Date(today)
+  endToday.setDate(today.getDate() + 1)
 
-  const startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1)
-  startOfWeek.setHours(0, 0, 0, 0)
+  // Poniedziałek jako początek tygodnia
+  const startWeek = new Date(today)
+  startWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
 
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  endOfWeek.setHours(23, 59, 59, 999)
+  const endWeek = new Date(startWeek)
+  endWeek.setDate(startWeek.getDate() + 7)
 
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  const startMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const endMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
 
-  return [...store.sessions]
+  return sessions
     .filter((s) => {
       if (!s.dateStart) return false
+
       const d = new Date(s.dateStart)
 
       switch (filter.value) {
         case 'today':
-          return d >= startOfDay && d <= endOfDay
+          return d >= today && d < endToday
+
         case 'week':
-          return d >= startOfWeek && d <= endOfWeek
+          return d >= startWeek && d < endWeek
+
         case 'month':
-          return d >= startOfMonth && d <= endOfMonth
+          return d >= startMonth && d < endMonth
+
         case 'future':
           return d > now
+
         case 'past':
           return d < now
+
         case 'all':
         default:
           return true
@@ -117,6 +128,7 @@ function openDetails(courseGroupId?: number) {
 }
 
 /* ---------- FORMAT ---------- */
+
 function formatDay(date?: string | Date) {
   if (!date) return ''
   return new Date(date).toLocaleDateString('pl-PL', { weekday: 'long' }).toUpperCase()

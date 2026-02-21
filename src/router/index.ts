@@ -64,7 +64,11 @@ const router = createRouter({
       component: StudentDeviceRegister,
       meta: { public: true },
     },
-
+    {
+      path: '/student/device/register/:token',
+      component: () => import('@/views/StudentDeviceRegister.vue'),
+      meta: { public: true },
+    },
     // ===== FALLBACK =====
     {
       path: '/:pathMatch(.*)*',

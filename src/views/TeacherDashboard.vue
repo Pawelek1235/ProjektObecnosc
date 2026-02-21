@@ -4,7 +4,7 @@
       <h1>Pulpit wykładowcy</h1>
 
       <div class="filters">
-        <input v-model="search" type="text" placeholder="Szukaj" class="search" />
+        <input v-model="search" type="text" placeholder="Szukaj..." class="search" />
 
         <select v-model="filter">
           <option value="today">Dzisiaj</option>
@@ -20,39 +20,26 @@
     <p v-if="loading">Ładowanie zajęć…</p>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <div v-if="!filteredSessions.length && !loading" class="empty">
-      Brak zajęć dla wybranych filtrów
-    </div>
+    <div v-if="!filteredSessions.length && !loading" class="empty">Brak zajęć</div>
 
-    <div>
-      <div
-        v-for="s in filteredSessions"
-        :key="s.courseSessionId"
-        class="session-row clickable"
-        @click="details(s.courseSessionId)"
-      >
-        <div class="left">
-          <span class="badge">
-            {{ formatDay(s.dateStart) }}
-            {{ formatTime(s.dateStart) }} – {{ formatTime(s.dateEnd) }}
-          </span>
+    <div
+      v-for="s in filteredSessions"
+      :key="s.courseSessionId"
+      class="session-row"
+      @click="openDetails(s.courseSessionId!)"
+    >
+      <div class="left">
+        <span class="badge">
+          {{ formatDay(s.dateStart) }}
+          {{ formatTime(s.dateStart) }} –
+          {{ formatTime(s.dateEnd) }}
+        </span>
 
-          <h3>{{ s.courseName }}</h3>
+        <h3>{{ s.courseName }}</h3>
 
-          <div class="meta">
-            <span>{{ s.locationName || '—' }}</span>
-            <span>{{ formatDateOnly(s.dateStart) }}</span>
-          </div>
-        </div>
-
-        <div class="right">
-          <span class="group">
-            {{ s.courseGroupName }}
-          </span>
-
-          <div class="actions">
-            <button class="secondary" @click.stop="scan(s.courseSessionId)">Skanuj QR</button>
-          </div>
+        <div class="meta">
+          <span>{{ s.courseGroupName }}</span>
+          <span>{{ s.locationName || '—' }}</span>
         </div>
       </div>
     </div>
@@ -62,35 +49,45 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTeacherStore } from '@/stores/teacher'
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 import type { CourseSessionListItem } from '@/backend/AttendMeBackendClientBase'
 
-const store = useTeacherStore()
 const router = useRouter()
 
+const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
+
 type Filter = 'today' | 'week' | 'month' | 'future' | 'past' | 'all'
+
+const sessions = ref<CourseSessionListItem[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 const filter = ref<Filter>('week')
 const search = ref('')
 
-onMounted(() => {
-  store.fetchSessions()
-})
+onMounted(fetchSessions)
 
-const loading = computed(() => store.loading)
-const error = computed(() => store.error)
+async function fetchSessions() {
+  loading.value = true
+  error.value = null
 
-function isValidSession(s: CourseSessionListItem): s is CourseSessionListItem & {
-  courseSessionId: number
-  dateStart: string | Date
-  dateEnd: string | Date
-} {
-  return Boolean(s.courseSessionId && s.dateStart && s.dateEnd)
+  try {
+    const result = await client.courseTeacherSessionsGet({
+      pageNumber: 1,
+      pageSize: 999999,
+    })
+
+    sessions.value = result.items ?? []
+  } catch {
+    error.value = 'Błąd pobierania zajęć'
+  } finally {
+    loading.value = false
+  }
 }
 
 const filteredSessions = computed(() => {
   const now = new Date()
-  const q = search.value.trim().toLowerCase()
+  const q = search.value.toLowerCase()
 
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
@@ -109,10 +106,9 @@ const filteredSessions = computed(() => {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
-  return store.sessions
-    .filter(isValidSession)
-
+  return sessions.value
     .filter((s) => {
+      if (!s.dateStart) return false
       const d = new Date(s.dateStart)
 
       switch (filter.value) {
@@ -126,204 +122,90 @@ const filteredSessions = computed(() => {
           return d > now
         case 'past':
           return d < now
-        case 'all':
         default:
           return true
       }
     })
-
     .filter((s) => {
       if (!q) return true
 
-      const dateText = new Date(s.dateStart).toLocaleString('pl-PL').toLowerCase()
-
-      return (
-        s.courseName?.toLowerCase().includes(q) ||
-        s.courseGroupName?.toLowerCase().includes(q) ||
-        s.locationName?.toLowerCase().includes(q) ||
-        dateText.includes(q)
-      )
+      return s.courseName?.toLowerCase().includes(q) || s.courseGroupName?.toLowerCase().includes(q)
     })
-
-    .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+    .sort((a, b) => new Date(a.dateStart!).getTime() - new Date(b.dateStart!).getTime())
 })
 
-function details(id: number) {
+function openDetails(id: number) {
   router.push(`/teacher/session/${id}`)
 }
 
-function scan(id: number) {
-  router.push(`/teacher/scan/${id}`)
-}
-
-function toDate(date?: string | Date) {
-  if (!date) return null
-  return typeof date === 'string' ? new Date(date) : date
-}
-
 function formatDay(date?: string | Date) {
-  const d = toDate(date)
-  return d ? d.toLocaleDateString('pl-PL', { weekday: 'long' }).toUpperCase() : ''
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('pl-PL', { weekday: 'long' }).toUpperCase()
 }
 
 function formatTime(date?: string | Date) {
-  const d = toDate(date)
-  return d
-    ? d.toLocaleTimeString('pl-PL', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : ''
-}
-
-function formatDateOnly(date?: string | Date) {
-  const d = toDate(date)
-  return d ? d.toLocaleDateString('pl-PL') : ''
+  if (!date) return ''
+  return new Date(date).toLocaleTimeString('pl-PL', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 </script>
 
-<style>
+<style scoped>
 .dashboard {
-  max-width: 1100px;
+  max-width: 1000px;
   margin: auto;
-  padding: 1.8rem;
-  background: #f1f5f9;
-  min-height: 100vh;
-  color: #334155;
+  padding: 1.5rem;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.header h1 {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #0f172a;
+  margin-bottom: 1rem;
 }
 
 .filters {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .search {
-  padding: 0.45rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.85rem;
+  padding: 0.4rem;
 }
 
 .session-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.2rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.session-row.clickable {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.8rem;
   cursor: pointer;
 }
 
 .session-row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-}
-
-.left {
-  flex: 1;
-}
-
-.left h3 {
-  margin: 0.4rem 0 0.3rem;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.meta {
-  display: flex;
-  gap: 1.2rem;
-  font-size: 0.85rem;
-  color: #64748b;
+  background: #f1f5f9;
 }
 
 .badge {
-  display: inline-block;
   background: #e0f2fe;
-  color: #0369a1;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-}
-
-.right {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.group {
+  padding: 4px 10px;
+  border-radius: 20px;
   font-size: 0.8rem;
+}
+
+.meta {
+  font-size: 0.85rem;
   color: #64748b;
-}
-
-.actions {
   display: flex;
-  justify-content: flex-end;
-}
-
-.actions button {
-  padding: 0.4rem 0.9rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
-
-.actions button.secondary {
-  background: #e2e8f0;
-  color: #334155;
+  gap: 1rem;
 }
 
 .error {
-  color: #dc2626;
-  font-weight: 600;
-  text-align: center;
-  margin-top: 1rem;
+  color: red;
 }
 
 .empty {
+  margin-top: 2rem;
   text-align: center;
-  margin-top: 3rem;
-  font-size: 0.95rem;
-  color: #64748b;
-}
-
-@media (max-width: 768px) {
-  .session-row {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .right {
-    align-items: flex-start;
-    text-align: left;
-  }
 }
 </style>
