@@ -20,7 +20,7 @@
       "withCredentials": false,
       "useSingletonProvider": false,
       "injectionTokenType": "OpaqueToken",
-      "rxJsVersion": 6.0,
+      "rxJsVersion": 6,
       "dateTimeType": "Date",
       "nullValue": "Undefined",
       "generateClientClasses": true,

@@ -1,5 +1,5 @@
 <template>
-  <header class="header" v-if="auth.token">
+  <header class="header" v-if="auth.user">
     <div class="left">
       <span class="title">Attend Me</span>
     </div>

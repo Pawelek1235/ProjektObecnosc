@@ -153,8 +153,6 @@ function formatTime(date?: string | Date) {
 </script>
 
 <style scoped>
-/* ===== LAYOUT ===== */
-
 .dashboard {
   max-width: 1050px;
   margin: 0 auto;
@@ -163,8 +161,6 @@ function formatTime(date?: string | Date) {
   background: #f5f7fb;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-
-/* ===== HEADER ===== */
 
 .header {
   display: flex;
@@ -178,8 +174,6 @@ function formatTime(date?: string | Date) {
   font-weight: 600;
   color: #1e293b;
 }
-
-/* ===== FILTERS ===== */
 
 .filters {
   display: flex;
@@ -203,8 +197,6 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
-/* ===== SESSION CARD ===== */
-
 .session-row {
   background: white;
   padding: 1.2rem;
@@ -227,8 +219,6 @@ select:focus {
   color: #1e293b;
 }
 
-/* ===== DATE BADGE ===== */
-
 .badge {
   display: inline-block;
   background: linear-gradient(135deg, #e0f2fe, #bae6fd);
@@ -240,16 +230,12 @@ select:focus {
   letter-spacing: 0.3px;
 }
 
-/* ===== META INFO ===== */
-
 .meta {
   font-size: 0.8rem;
   color: #64748b;
   display: flex;
   gap: 1.2rem;
 }
-
-/* ===== STATES ===== */
 
 .error {
   margin-top: 1rem;

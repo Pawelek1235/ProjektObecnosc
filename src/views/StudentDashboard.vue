@@ -67,10 +67,6 @@ onMounted(() => {
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
-/* =======================
-   POPRAWIONE FILTROWANIE
-======================= */
-
 const filteredSessions = computed<CourseSessionListItem[]>(() => {
   const sessions = [...store.sessions]
 
@@ -82,7 +78,6 @@ const filteredSessions = computed<CourseSessionListItem[]>(() => {
   const endToday = new Date(today)
   endToday.setDate(today.getDate() + 1)
 
-  // Poniedziałek jako początek tygodnia
   const startWeek = new Date(today)
   startWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
 
@@ -126,8 +121,6 @@ function openDetails(courseGroupId?: number) {
   if (!courseGroupId) return
   router.push(`/student/session/${courseGroupId}`)
 }
-
-/* ---------- FORMAT ---------- */
 
 function formatDay(date?: string | Date) {
   if (!date) return ''

@@ -9,23 +9,19 @@
     <p v-if="error" class="error">{{ error }}</p>
 
     <div v-if="session" class="card">
-      <!-- NAZWA -->
       <h2>{{ session.courseName }}</h2>
 
-      <!-- GRUPA -->
       <p>
         <strong>Grupa:</strong>
         {{ session.courseGroupName }}
       </p>
 
-      <!-- TERMIN -->
       <p>
         <strong>Termin:</strong><br />
         {{ formatDateOnly(session.dateStart) }}<br />
         {{ formatTime(session.dateStart) }} – {{ formatTime(session.dateEnd) }}
       </p>
 
-      <!-- STATUS -->
       <p class="status">
         Status zajęć:
         <span :class="isActive ? 'active' : 'inactive'">
@@ -33,7 +29,6 @@
         </span>
       </p>
 
-      <!-- FREKWENCJA -->
       <div class="attendance-box">
         <p>
           <strong>Obecności:</strong>
@@ -45,7 +40,6 @@
         </p>
       </div>
 
-      <!-- AKCJE -->
       <div class="actions">
         <button @click="refresh">Odśwież</button>
 
@@ -65,21 +59,18 @@ import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 import type { CourseSessionListItem, AttendanceLog } from '@/backend/AttendMeBackendClientBase'
 
-/* ---------- ROUTER ---------- */
 const route = useRoute()
 const router = useRouter()
 
 const param = route.params.id
 const courseGroupId = typeof param === 'string' ? Number(param) : NaN
 
-/* ---------- STATE ---------- */
 const session = ref<CourseSessionListItem | null>(null)
 const allSessions = ref<CourseSessionListItem[]>([])
 const attendance = ref<AttendanceLog[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-/* ---------- FETCH ---------- */
 async function fetchData() {
   if (Number.isNaN(courseGroupId)) {
     error.value = 'Nieprawidłowy identyfikator zajęć'
@@ -91,13 +82,11 @@ async function fetchData() {
   error.value = null
 
   try {
-    // wszystkie zajęcia w grupie
     const sessions = await client.courseStudentGroupSessionsGet(courseGroupId)
 
     allSessions.value = sessions
     session.value = sessions[0] ?? null
 
-    // obecności studenta
     attendance.value = await client.courseStudentAttendanceGet(courseGroupId)
   } catch {
     error.value = 'Nie udało się pobrać danych zajęć'
@@ -108,7 +97,6 @@ async function fetchData() {
 
 onMounted(fetchData)
 
-/* ---------- COMPUTED ---------- */
 const isActive = computed(() => {
   if (!session.value?.dateStart || !session.value?.dateEnd) return false
   const now = new Date()
@@ -122,7 +110,6 @@ const attendancePercentage = computed(() => {
   return Math.round((attendance.value.length / totalSessions.value) * 100)
 })
 
-/* ---------- ACTIONS ---------- */
 function refresh() {
   fetchData()
 }
@@ -136,7 +123,6 @@ function goBack() {
   router.push('/student')
 }
 
-/* ---------- FORMAT ---------- */
 function formatDateOnly(date?: string | Date) {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('pl-PL')

@@ -46,7 +46,6 @@ onMounted(() => {
 })
 
 watch(token, (newVal, oldVal) => {
-  // token zmienił się → backend zarejestrował obecność
   if (oldVal && newVal && oldVal !== newVal) {
     success.value = true
     if (interval) clearInterval(interval)

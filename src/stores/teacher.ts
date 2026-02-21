@@ -47,10 +47,8 @@ export const useTeacherStore = defineStore('teacher', {
       this.error = null
 
       try {
-        // dane sesji (z listy już pobranej)
         this.selectedSession = this.sessions.find((s) => s.courseSessionId === sessionId) ?? null
 
-        // ✅ TYLKO ODCZYT LISTY OBECNOŚCI
         this.attendance = await client.courseSessionAttendanceListGet(sessionId)
       } catch {
         this.error = 'Nie udało się pobrać listy obecności'

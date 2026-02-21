@@ -19,7 +19,6 @@
       </div>
     </div>
 
-    <!-- TABELA OBECNOŚCI -->
     <table class="attendance-table">
       <thead>
         <tr>
@@ -42,7 +41,6 @@
       </tbody>
     </table>
 
-    <!-- ================== SCANNER MODAL ================== -->
     <div v-if="showScanner" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
@@ -61,7 +59,6 @@
       </div>
     </div>
 
-    <!-- ================== DEVICE MODAL ================== -->
     <div v-if="showDeviceModal" class="modal-overlay">
       <div class="modal large">
         <div class="modal-header">
@@ -174,8 +171,6 @@ async function fetchData() {
   }
 }
 
-/* ===== QR ===== */
-
 async function openScanner() {
   const token = await client.courseSessionAttendanceScannerTokenGet(sessionId)
 
@@ -191,8 +186,6 @@ function closeScanner() {
 function copyUrl() {
   navigator.clipboard.writeText(scannerUrl.value)
 }
-
-/* ===== DEVICE ===== */
 
 function openDeviceModal() {
   showDeviceModal.value = true
@@ -218,8 +211,6 @@ async function resetDevice(studentId: number) {
   await client.userDeviceReset(studentId)
   fetchData()
 }
-
-/* ===== FORMAT ===== */
 
 function formatDate(date?: string | Date) {
   return date ? new Date(date).toLocaleDateString('pl-PL') : ''
