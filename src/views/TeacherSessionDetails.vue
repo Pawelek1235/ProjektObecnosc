@@ -72,7 +72,7 @@
               <th>Uczestnik</th>
               <th>Nr albumu</th>
               <th>Aktualne urządzenie</th>
-              <th>Link</th>
+              <th class="action-col">Akcja</th>
             </tr>
           </thead>
 
@@ -82,15 +82,18 @@
               <td>{{ d.album }}</td>
 
               <td>
-                <span v-if="d.deviceName">
+                <span v-if="d.deviceName" class="device-name">
                   {{ d.deviceName }}
-                  <button class="danger small" @click="resetDevice(d.studentId)">Resetuj</button>
                 </span>
-                <span v-else>-</span>
+                <span v-else class="no-device"> Brak </span>
               </td>
 
-              <td>
-                <button class="secondary small" @click="copyDeviceLink(d.studentId)">
+              <td class="action-col">
+                <button v-if="d.deviceName" class="danger small" @click="resetDevice(d.studentId)">
+                  Reset
+                </button>
+
+                <button v-else class="secondary small" @click="copyDeviceLink(d.studentId)">
                   Skopiuj link
                 </button>
               </td>
@@ -155,15 +158,23 @@ async function fetchData() {
 
     attendance.value = await client.courseSessionAttendanceListGet(sessionId)
 
-    deviceLinks.value = attendance.value
-      .filter((a) => a.attenderUserId !== undefined)
-      .map((a) => ({
-        studentId: a.attenderUserId as number,
-        name: `${a.userName ?? ''} ${a.userSurname ?? ''}`,
-        album: a.studentAlbumIdNumber,
-        deviceName: null,
-        link: `${window.location.origin}/student/device/register/${a.attenderUserId}`,
-      }))
+    const attendanceMap = new Map(
+      attendance.value
+        .filter((a) => a.attenderUserId !== undefined)
+        .map((a) => [a.attenderUserId as number, a.studentAlbumIdNumber]),
+    )
+
+    const userIds = Array.from(attendanceMap.keys())
+
+    const users = await Promise.all(userIds.map((id) => client.userGet(id)))
+
+    deviceLinks.value = users.map((u) => ({
+      studentId: u.userId as number,
+      name: `${u.name ?? ''} ${u.surname ?? ''}`.trim(),
+      album: attendanceMap.get(u.userId as number),
+      deviceName: u.deviceName ?? null,
+      link: '',
+    }))
   } catch {
     error.value = 'Błąd pobierania danych'
   } finally {
@@ -265,14 +276,26 @@ function formatTime(date?: string | Date) {
   color: white;
 }
 
+.primary:hover {
+  opacity: 0.9;
+}
+
 .secondary {
   background: white;
   border: 1px solid #e2e8f0;
 }
 
+.secondary:hover {
+  background: #f8fafc;
+}
+
 .danger {
   background: #dc2626;
   color: white;
+}
+
+.danger:hover {
+  opacity: 0.9;
 }
 
 .small {
@@ -287,13 +310,40 @@ function formatTime(date?: string | Date) {
   background: white;
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.device-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: left;
+}
+
+.device-table td {
+  vertical-align: middle;
 }
 
 th,
 td {
-  padding: 0.8rem;
+  padding: 0.85rem 0.75rem;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.85rem;
+}
+
+.action-col {
+  text-align: right;
+  width: 150px;
+}
+
+.device-name {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.no-device {
+  color: #94a3b8;
 }
 
 .badge {
@@ -316,7 +366,7 @@ td {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
@@ -336,7 +386,7 @@ td {
   flex-direction: column;
   padding: 2rem;
   overflow: hidden;
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 .modal.large {
@@ -347,7 +397,7 @@ td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .modal-content {
@@ -366,7 +416,7 @@ td {
   display: flex;
   justify-content: flex-end;
   gap: 0.8rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid #e2e8f0;
 }
@@ -379,6 +429,10 @@ td {
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
+}
+
+.close:hover {
+  opacity: 0.6;
 }
 
 .error {

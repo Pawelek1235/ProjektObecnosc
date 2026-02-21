@@ -1,73 +1,54 @@
 <template>
-  <div class="scan-page">
-    <h2>Skanowanie obecności</h2>
+  <div class="scanner">
+    <h1>QR skanera</h1>
 
-    <qrcode-stream @decode="onDecode" @init="onInit" />
+    <div class="qr-box" v-if="qrValue">
+      <QrcodeVue :value="qrValue" :size="280" />
+    </div>
 
-    <p v-if="message" class="success">
-      {{ message }}
-    </p>
+    <p v-if="error" class="error">{{ error }}</p>
 
-    <p v-if="error" class="error">
-      {{ error }}
-    </p>
+    <button @click="goBack">Wróć</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { QrcodeStream } from 'vue-qrcode-reader'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import QrcodeVue from 'qrcode.vue'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
-import { useRoute } from 'vue-router'
 
-const route = useRoute()
-const token = route.params.token as string
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
+const route = useRoute()
+const router = useRouter()
 
-const message = ref<string | null>(null)
+const sessionId = Number(route.params.token) // albo id jeśli masz inny parametr
+const qrValue = ref<string | null>(null)
 const error = ref<string | null>(null)
 
-let scanningLocked = false
-import { onMounted } from 'vue'
+let interval: number | undefined
 
-onMounted(async () => {
-  if (!token) return
-
+async function loadQr() {
   try {
-    await client.courseSessionAttendanceRegister(token)
-    message.value = 'Obecność zarejestrowana'
-    error.value = null
+    const result = await client.courseSessionAttendanceScannerTokenGet(sessionId)
+    qrValue.value = `${window.location.origin}/student/scan/${result.token}`
   } catch {
-    message.value = null
-    error.value = 'Nie udało się zarejestrować obecności'
+    error.value = 'Brak dostępu do generowania QR'
   }
+}
+
+function goBack() {
+  router.back()
+}
+
+onMounted(() => {
+  loadQr()
+  interval = window.setInterval(loadQr, 2000)
 })
-async function onDecode(result: string) {
-  if (scanningLocked) return
 
-  scanningLocked = true
-
-  try {
-    await client.courseSessionAttendanceRegister(result)
-    message.value = 'Obecność zarejestrowana'
-    error.value = null
-  } catch {
-    message.value = null
-    error.value = 'Błąd rejestracji obecności'
-  }
-
-  setTimeout(() => {
-    scanningLocked = false
-    message.value = null
-    error.value = null
-  }, 2000)
-}
-
-function onInit(promise: Promise<void>) {
-  promise.catch(() => {
-    error.value = 'Brak dostępu do kamery'
-  })
-}
+onUnmounted(() => {
+  if (interval) clearInterval(interval)
+})
 </script>
 
 <style scoped>

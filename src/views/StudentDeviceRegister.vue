@@ -4,34 +4,29 @@
       <h1>Rejestracja urządzenia</h1>
 
       <p class="subtitle">
-        Rejestrujesz urządzenie, którego będziesz używać do sprawdzania obecności. Uzupełnij
-        poniższe dane i naciśnij przycisk „Zarejestruj”.
+        Rejestrujesz urządzenie, którego będziesz używać do sprawdzania obecności. Uzupełnij dane i
+        naciśnij „Zarejestruj”.
       </p>
 
       <form @submit.prevent="register">
         <div class="field">
           <label>Nazwa urządzenia</label>
-          <input
-            v-model="deviceName"
-            type="text"
-            placeholder="Wprowadź nazwę urządzenia"
-            required
-          />
+          <input v-model="deviceName" type="text" required />
         </div>
 
         <div class="field">
           <label>Twoje imię</label>
-          <input v-model="firstName" type="text" placeholder="Wprowadź swoje imię" required />
+          <input v-model="firstName" type="text" required />
         </div>
 
         <div class="field">
           <label>Twoje nazwisko</label>
-          <input v-model="lastName" type="text" placeholder="Wprowadź swoje nazwisko" required />
+          <input v-model="lastName" type="text" required />
         </div>
 
         <div class="field">
           <label>Twój numer albumu</label>
-          <input v-model="albumNumber" type="number" placeholder="Wprowadź numer albumu" required />
+          <input v-model.number="albumNumber" type="number" required />
         </div>
 
         <button type="submit" class="submit" :disabled="loading">
@@ -47,11 +42,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 import { useRoute } from 'vue-router'
-
+import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 const route = useRoute()
-const token = route.params.token as string
+
+const token = route.params.token as string | undefined
+
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 const deviceName = ref('')
@@ -73,21 +71,27 @@ async function register() {
       throw new Error('Brak tokena w URL')
     }
 
+    if (!albumNumber.value) {
+      throw new Error('Numer albumu jest wymagany')
+    }
+
     const result = await client.userDeviceRegisterWithToken(token, {
       deviceName: deviceName.value,
+      studentName: firstName.value,
+      studentSurname: lastName.value,
+      albumIdNumber: albumNumber.value,
     })
 
-    if (!result.token) {
-      throw new Error('Backend nie zwrócił tokena')
+    if (!result?.token) {
+      throw new Error('Backend nie zwrócił tokena urządzenia')
     }
 
     localStorage.setItem('deviceToken', result.token)
 
-    success.value = true
-  } catch {
-    error.value = 'Błąd rejestracji urządzenia'
-  } finally {
-    loading.value = false
+    router.push('/student-home')
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Błąd rejestracji urządzenia'
+    error.value = message
   }
 }
 </script>
@@ -112,48 +116,16 @@ async function register() {
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 0.5rem;
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.subtitle {
-  text-align: center;
-  font-size: 0.9rem;
-  color: #64748b;
-  margin-bottom: 2rem;
-  line-height: 1.5;
-}
-
 .field {
   margin-bottom: 1.2rem;
   display: flex;
   flex-direction: column;
 }
 
-.field label {
-  font-size: 0.8rem;
-  margin-bottom: 0.4rem;
-  color: #334155;
-  font-weight: 500;
-}
-
 .field input {
   padding: 0.65rem 0.9rem;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
-  background: #ffffff;
-  font-size: 0.9rem;
-  transition: 0.15s ease;
-}
-
-.field input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .submit {
@@ -164,33 +136,18 @@ h1 {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
   font-weight: 600;
-  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.15s ease;
-  margin-top: 0.5rem;
-}
-
-.submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
-}
-
-.submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .error {
   margin-top: 1rem;
   color: #dc2626;
   text-align: center;
-  font-size: 0.85rem;
 }
 
 .success {
   margin-top: 1rem;
   color: #16a34a;
   text-align: center;
-  font-size: 0.85rem;
 }
 </style>

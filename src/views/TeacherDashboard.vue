@@ -47,13 +47,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
 import type { CourseSessionListItem } from '@/backend/AttendMeBackendClientBase'
 
 const router = useRouter()
-
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
 type Filter = 'today' | 'week' | 'month' | 'future' | 'past' | 'all'
@@ -65,7 +64,19 @@ const error = ref<string | null>(null)
 const filter = ref<Filter>('week')
 const search = ref('')
 
-onMounted(fetchSessions)
+let refreshInterval: number | undefined
+
+onMounted(() => {
+  fetchSessions()
+
+  refreshInterval = window.setInterval(() => {
+    fetchSessionsSilently()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) clearInterval(refreshInterval)
+})
 
 async function fetchSessions() {
   loading.value = true
@@ -83,6 +94,17 @@ async function fetchSessions() {
   } finally {
     loading.value = false
   }
+}
+
+async function fetchSessionsSilently() {
+  try {
+    const result = await client.courseTeacherSessionsGet({
+      pageNumber: 1,
+      pageSize: 999999,
+    })
+
+    sessions.value = result.items ?? []
+  } catch {}
 }
 
 const filteredSessions = computed(() => {
@@ -128,7 +150,6 @@ const filteredSessions = computed(() => {
     })
     .filter((s) => {
       if (!q) return true
-
       return s.courseName?.toLowerCase().includes(q) || s.courseGroupName?.toLowerCase().includes(q)
     })
     .sort((a, b) => new Date(a.dateStart!).getTime() - new Date(b.dateStart!).getTime())
@@ -227,7 +248,6 @@ select:focus {
   border-radius: 20px;
   font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.3px;
 }
 
 .meta {
