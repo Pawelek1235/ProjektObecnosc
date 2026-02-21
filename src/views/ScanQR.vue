@@ -22,7 +22,7 @@ const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 const route = useRoute()
 const router = useRouter()
 
-const sessionId = Number(route.params.token) // albo id jeśli masz inny parametr
+const sessionId = Number(route.params.token)
 const qrValue = ref<string | null>(null)
 const error = ref<string | null>(null)
 

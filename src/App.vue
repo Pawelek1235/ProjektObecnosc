@@ -47,9 +47,9 @@ function go(path: string) {
 
 <style scoped>
 .app-header {
-  max-width: 1100px; /* 🔹 HEADER NIE JEST SZEROKI */
-  margin: 0 auto; /* 🔹 wyśrodkowany */
-  padding: 0.6rem 1rem; /* 🔹 normalna wysokość */
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -78,7 +78,7 @@ function go(path: string) {
 }
 
 button {
-  padding: 0.25rem 0.6rem; /* 🔹 NORMALNE przyciski */
+  padding: 0.25rem 0.6rem;
   font-size: 0.8rem;
   border-radius: 5px;
   border: 1px solid #e2e8f0;

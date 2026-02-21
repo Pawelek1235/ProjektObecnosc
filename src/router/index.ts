@@ -1,11 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-
 import LoginView from '@/views/LoginView.vue'
 import TeacherDashboard from '@/views/TeacherDashboard.vue'
 import TeacherSessionDetails from '@/views/TeacherSessionDetails.vue'
 import ScanQR from '@/views/ScanQR.vue'
-
 import StudentDashboard from '@/views/StudentDashboard.vue'
 import StudentSessionDetails from '@/views/StudentSessionDetails.vue'
 import StudentScanView from '@/views/StudentScanView.vue'
