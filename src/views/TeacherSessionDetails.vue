@@ -41,7 +41,6 @@
       </tbody>
     </table>
 
-    <!-- QR MODAL -->
     <div v-if="showScanner" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
@@ -59,7 +58,6 @@
       </div>
     </div>
 
-    <!-- DEVICE MODAL -->
     <div v-if="showDeviceModal" class="modal-overlay">
       <div class="modal large">
         <div class="modal-header">
