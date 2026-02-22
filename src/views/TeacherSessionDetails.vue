@@ -41,7 +41,7 @@
       </tbody>
     </table>
 
-    <!-- MODAL Z QR -->
+    <!-- QR MODAL -->
     <div v-if="showScanner" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
@@ -59,6 +59,63 @@
       </div>
     </div>
 
+    <!-- DEVICE MODAL -->
+    <div v-if="showDeviceModal" class="modal-overlay">
+      <div class="modal large">
+        <div class="modal-header">
+          <h2>Rejestracja urządzenia</h2>
+          <button class="close" @click="closeDeviceModal">✕</button>
+        </div>
+
+        <div class="modal-content">
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Album</th>
+                <th>Urządzenie</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="d in deviceLinks" :key="d.studentId">
+                <td>{{ d.name }}</td>
+                <td>{{ d.album }}</td>
+                <td>
+                  <span v-if="d.deviceName" class="device-name">
+                    {{ d.deviceName }}
+                  </span>
+                  <span v-else class="no-device">Brak</span>
+                </td>
+                <td>
+                  <button
+                    v-if="d.deviceName"
+                    class="danger small"
+                    @click="resetDevice(d.studentId)"
+                  >
+                    Reset
+                  </button>
+
+                  <button v-else class="secondary small" @click="copyDeviceLink(d.studentId)">
+                    Skopiuj link
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-actions">
+          <button class="primary" @click="closeDeviceModal">Zamknij</button>
+        </div>
+      </div>
+    </div>
+    <div class="toast-container">
+      <div v-for="t in toasts" :key="t.id" :class="['toast', t.type]">
+        {{ t.message }}
+      </div>
+    </div>
     <p v-if="loading">Ładowanie…</p>
     <p v-if="error" class="error">{{ error }}</p>
   </div>
@@ -74,6 +131,13 @@ import type {
   CourseSessionAttendanceRecord,
 } from '@/backend/AttendMeBackendClientBase'
 
+type DeviceLink = {
+  studentId: number
+  name: string
+  album?: number
+  deviceName: string | null
+}
+
 const route = useRoute()
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
@@ -81,6 +145,7 @@ const sessionId = Number(route.params.id)
 
 const session = ref<CourseSession | null>(null)
 const attendance = ref<CourseSessionAttendanceRecord[]>([])
+const deviceLinks = ref<DeviceLink[]>([])
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -88,8 +153,28 @@ const error = ref<string | null>(null)
 const showScanner = ref(false)
 const scannerUrl = ref<string>('')
 
-onMounted(fetchData)
+const showDeviceModal = ref(false)
 
+onMounted(fetchData)
+type ToastType = 'success' | 'error'
+
+type Toast = {
+  id: number
+  message: string
+  type: ToastType
+}
+
+const toasts = ref<Toast[]>([])
+let toastId = 0
+
+function showToast(message: string, type: ToastType = 'success') {
+  const id = toastId++
+  toasts.value.push({ id, message, type })
+
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
+  }, 3000)
+}
 async function fetchData() {
   loading.value = true
   error.value = null
@@ -121,8 +206,51 @@ function closeScanner() {
   scannerUrl.value = ''
 }
 
-function openDeviceModal() {
-  console.log('Device modal')
+async function openDeviceModal() {
+  showDeviceModal.value = true
+
+  try {
+    const list = await client.courseSessionAttendanceListGet(sessionId)
+
+    const map = new Map<number, number | undefined>()
+
+    list.forEach((a) => {
+      if (a.attenderUserId) map.set(a.attenderUserId, a.studentAlbumIdNumber)
+    })
+
+    const users = await Promise.all(Array.from(map.keys()).map((id) => client.userGet(id)))
+
+    deviceLinks.value = users.map((u) => ({
+      studentId: u.userId!,
+      name: `${u.name ?? ''} ${u.surname ?? ''}`,
+      album: map.get(u.userId!),
+      deviceName: u.deviceName ?? null,
+    }))
+  } catch {
+    error.value = 'Błąd ładowania studentów'
+  }
+}
+
+function closeDeviceModal() {
+  showDeviceModal.value = false
+}
+
+async function copyDeviceLink(studentId: number) {
+  try {
+    const result = await client.userDeviceRegisterTokenGet(studentId)
+
+    const link = `${window.location.origin}/student/device/register/${result.token}`
+
+    await navigator.clipboard.writeText(link)
+    showToast('Link skopiowany', 'success')
+  } catch {
+    showToast('Nie udało się wygenerować linku', 'error')
+  }
+}
+
+async function resetDevice(studentId: number) {
+  await client.userDeviceReset(studentId)
+  await openDeviceModal()
 }
 
 function formatDate(date?: string | Date) {
@@ -340,5 +468,44 @@ td {
 .error {
   margin-top: 1rem;
   color: #dc2626;
+}
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2000;
+}
+
+.toast {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: white;
+  min-width: 220px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.2s ease;
+}
+
+.toast.success {
+  background: #16a34a;
+}
+
+.toast.error {
+  background: #dc2626;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 </style>
