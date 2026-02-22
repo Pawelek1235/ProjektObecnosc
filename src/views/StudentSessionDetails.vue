@@ -52,12 +52,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AttendMeBackendClient } from '@/backend/AttendMeBackendClient'
+import type { CourseSessionListItem, AttendanceLog } from '@/backend/AttendMeBackendClientBase'
 
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
-import type { CourseSessionListItem, AttendanceLog } from '@/backend/AttendMeBackendClientBase'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,12 +71,18 @@ const attendance = ref<AttendanceLog[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
+let refreshInterval: number | undefined
+let isFetching = false
+
 async function fetchData() {
   if (Number.isNaN(courseGroupId)) {
     error.value = 'Nieprawidłowy identyfikator zajęć'
     loading.value = false
     return
   }
+
+  if (isFetching) return
+  isFetching = true
 
   loading.value = true
   error.value = null
@@ -92,10 +98,25 @@ async function fetchData() {
     error.value = 'Nie udało się pobrać danych zajęć'
   } finally {
     loading.value = false
+    isFetching = false
   }
 }
 
-onMounted(fetchData)
+onMounted(() => {
+  fetchData()
+
+  refreshInterval = window.setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      fetchData()
+    }
+  }, 15000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
 
 const isActive = computed(() => {
   if (!session.value?.dateStart || !session.value?.dateEnd) return false

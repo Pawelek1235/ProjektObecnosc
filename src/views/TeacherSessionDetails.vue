@@ -41,6 +41,7 @@
       </tbody>
     </table>
 
+    <!-- MODAL Z QR -->
     <div v-if="showScanner" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
@@ -48,61 +49,12 @@
           <button class="close" @click="closeScanner">✕</button>
         </div>
 
-        <div class="qr-wrapper">
+        <div class="qr-wrapper" v-if="scannerUrl">
           <QrcodeVue :value="scannerUrl" :size="300" />
         </div>
 
         <div class="modal-actions">
-          <button class="secondary" @click="copyUrl">Skopiuj adres</button>
           <button class="primary" @click="closeScanner">Zamknij</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showDeviceModal" class="modal-overlay">
-      <div class="modal large">
-        <div class="modal-header">
-          <h2>Linki do rejestracji urządzenia</h2>
-          <button class="close" @click="closeDeviceModal">✕</button>
-        </div>
-
-        <table class="device-table">
-          <thead>
-            <tr>
-              <th>Uczestnik</th>
-              <th>Nr albumu</th>
-              <th>Aktualne urządzenie</th>
-              <th class="action-col">Akcja</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr v-for="d in deviceLinks" :key="d.studentId">
-              <td>{{ d.name }}</td>
-              <td>{{ d.album }}</td>
-
-              <td>
-                <span v-if="d.deviceName" class="device-name">
-                  {{ d.deviceName }}
-                </span>
-                <span v-else class="no-device"> Brak </span>
-              </td>
-
-              <td class="action-col">
-                <button v-if="d.deviceName" class="danger small" @click="resetDevice(d.studentId)">
-                  Reset
-                </button>
-
-                <button v-else class="secondary small" @click="copyDeviceLink(d.studentId)">
-                  Skopiuj link
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="modal-actions">
-          <button class="primary" @click="closeDeviceModal">Zamknij</button>
         </div>
       </div>
     </div>
@@ -122,14 +74,6 @@ import type {
   CourseSessionAttendanceRecord,
 } from '@/backend/AttendMeBackendClientBase'
 
-type DeviceLink = {
-  studentId: number
-  name: string
-  album: number | undefined
-  deviceName: string | null
-  link: string
-}
-
 const route = useRoute()
 const client = new AttendMeBackendClient('https://attendme-backend.runasp.net')
 
@@ -137,15 +81,12 @@ const sessionId = Number(route.params.id)
 
 const session = ref<CourseSession | null>(null)
 const attendance = ref<CourseSessionAttendanceRecord[]>([])
-const deviceLinks = ref<DeviceLink[]>([])
 
 const loading = ref(false)
 const error = ref<string | null>(null)
 
 const showScanner = ref(false)
-const showDeviceModal = ref(false)
-
-const scannerUrl = ref('')
+const scannerUrl = ref<string>('')
 
 onMounted(fetchData)
 
@@ -155,26 +96,7 @@ async function fetchData() {
 
   try {
     session.value = await client.courseTeacherSessionGet(sessionId)
-
     attendance.value = await client.courseSessionAttendanceListGet(sessionId)
-
-    const attendanceMap = new Map(
-      attendance.value
-        .filter((a) => a.attenderUserId !== undefined)
-        .map((a) => [a.attenderUserId as number, a.studentAlbumIdNumber]),
-    )
-
-    const userIds = Array.from(attendanceMap.keys())
-
-    const users = await Promise.all(userIds.map((id) => client.userGet(id)))
-
-    deviceLinks.value = users.map((u) => ({
-      studentId: u.userId as number,
-      name: `${u.name ?? ''} ${u.surname ?? ''}`.trim(),
-      album: attendanceMap.get(u.userId as number),
-      deviceName: u.deviceName ?? null,
-      link: '',
-    }))
   } catch {
     error.value = 'Błąd pobierania danych'
   } finally {
@@ -183,44 +105,24 @@ async function fetchData() {
 }
 
 async function openScanner() {
-  const token = await client.courseSessionAttendanceScannerTokenGet(sessionId)
+  try {
+    const token = await client.courseSessionAttendanceScannerTokenGet(sessionId)
 
-  scannerUrl.value = `${window.location.origin}/student/scan/${token.token}`
+    scannerUrl.value = `${window.location.origin}/teacher/mobile-scan/${token.token}`
 
-  showScanner.value = true
+    showScanner.value = true
+  } catch {
+    error.value = 'Nie udało się wygenerować tokenu'
+  }
 }
 
 function closeScanner() {
   showScanner.value = false
-}
-
-function copyUrl() {
-  navigator.clipboard.writeText(scannerUrl.value)
+  scannerUrl.value = ''
 }
 
 function openDeviceModal() {
-  showDeviceModal.value = true
-}
-
-function closeDeviceModal() {
-  showDeviceModal.value = false
-}
-
-async function copyDeviceLink(studentId: number) {
-  try {
-    const result = await client.userDeviceRegisterTokenGet(studentId)
-
-    const link = `${window.location.origin}/student/device/register/${result.token}`
-
-    navigator.clipboard.writeText(link)
-  } catch {
-    alert('Nie udało się wygenerować linku')
-  }
-}
-
-async function resetDevice(studentId: number) {
-  await client.userDeviceReset(studentId)
-  fetchData()
+  console.log('Device modal')
 }
 
 function formatDate(date?: string | Date) {

@@ -8,6 +8,7 @@ import StudentDashboard from '@/views/StudentDashboard.vue'
 import StudentSessionDetails from '@/views/StudentSessionDetails.vue'
 import StudentScanView from '@/views/StudentScanView.vue'
 import StudentDeviceRegister from '@/views/StudentDeviceRegister.vue'
+import TeacherMobileScannerView from '@/views/TeacherMobileScannerView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -53,7 +54,12 @@ const router = createRouter({
       meta: { role: 'teacher' },
       props: true,
     },
-
+    {
+      path: '/teacher/mobile-scan/:token',
+      component: TeacherMobileScannerView,
+      meta: { public: true },
+      props: true,
+    },
     {
       path: '/student',
       component: StudentDashboard,
