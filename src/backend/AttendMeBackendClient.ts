@@ -5,6 +5,7 @@ import {
   type TokenResult,
 } from './AttendMeBackendClientBase'
 
+
 export class AttendMeBackendClient extends AttendMeBackendClientBase {
   userTokenResult?: TokenResult
   deviceTokenResult?: TokenResult
